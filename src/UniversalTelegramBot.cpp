@@ -47,17 +47,20 @@ String UniversalTelegramBot::sendGetToTelegram(String command) {
 
   // Connect with api.telegram.org if not already connected
   if (!client->connected()) {
-    if (_debug)
+    if (_debug) {
       Serial.println(F("[BOT]Connecting to server"));
+    }
     if (!client->connect(HOST, SSL_PORT)) {
-      if (_debug)
+      if (_debug) {
         Serial.println(F("[BOT]Conection error"));
+      }
     }
   }
   if (client->connected()) {
 
-    if (_debug)
+    if (_debug) {
       Serial.println(F(".... connected to server"));
+    }
 
     String a = "";
     char c;
@@ -341,8 +344,9 @@ bool UniversalTelegramBot::getMe() {
  ***************************************************************/
 int UniversalTelegramBot::getUpdates(long offset) {
 
-  if (_debug)
+  if (_debug) {
     Serial.println(F("GET Update Messages"));
+  }
 
   String command = "bot" + _token + "/getUpdates?offset=" + String(offset) +
                    "&limit=" + String(HANDLE_MESSAGES);
@@ -353,8 +357,9 @@ int UniversalTelegramBot::getUpdates(long offset) {
       sendGetToTelegram(command); // receive reply from telegram.org
 
   if (response == "") {
-    if (_debug)
+    if (_debug) {
       Serial.println(F("Received empty string in response!"));
+    }
     // close the client as there's nothing to do with an empty string
     closeClient();
     return 0;
@@ -388,24 +393,42 @@ int UniversalTelegramBot::getUpdates(long offset) {
           // given
           return newMessageIndex;
         } else {
-          if (_debug)
+          if (_debug) {
             Serial.println(F("no new messages"));
+          }
         }
       } else {
-        if (_debug)
+        if (_debug) {
           Serial.println(F("Response contained no 'result'"));
+        }
       }
     } else { // Parsing failed
       if (response.length() <
           2) { // Too short a message. Maybe connection issue
-        if (_debug)
+        if (_debug) {
           Serial.println(F("Parsing error: Message too short"));
+        }
       } else {
         // Buffer may not be big enough, increase buffer or reduce max number of
         // messages
-        if (_debug)
+
+        // try to recover by discarding the message by parsing update_id manually
+        String search = "\"update_id\":";
+        int index = response.indexOf(search);
+        if(index > -1) {
+          int idStart = index + search.length();
+          int idEnd = response.indexOf(",", idStart);
+          if(idEnd > -1) {
+            //set last_message_received to manually parsed update_id to skip the message
+            String update_id = response.substring(idStart, idEnd);
+            last_message_received = update_id.toInt();
+          }
+        }
+
+        if (_debug) {
           Serial.println(F("Failed to parse update, the message could be too "
                            "big for the buffer"));
+        }
       }
     }
     // Close the client as no response is to be given
